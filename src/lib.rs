@@ -1,3 +1,3 @@
 pub mod queries;
-pub mod ci;
+pub mod di;
 pub mod error;

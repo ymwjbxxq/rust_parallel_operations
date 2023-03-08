@@ -1,7 +1,7 @@
 use futures::future::join_all;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use rust_parallel_operations::{
-    ci::handler_ci::{AppClient, AppInitialisation},
+    di::handler_di::{AppClient, AppInitialisation},
     queries::{operation1::Operation1, operation2::Operation2},
 };
 use serde_json::Value;
@@ -41,22 +41,22 @@ pub async fn function_handler<'a>(
     println!("{event:?}");
 
     // sequentially - unit test will pass
-    // let result1 = app_client.operation1("something").await?;
-    // let result2 = app_client.operation2("something").await?;
+    let result1 = app_client.operation1("something").await?;
+    let result2 = app_client.operation2("something").await?;
 
     //borrowed data escapes outside of function 'app_client' escapes the function here
     // parallel
-    let mut set = JoinSet::new();
-    let shared_client = Arc::from(app_client.clone());
+    // let mut set = JoinSet::new();
+    // let shared_client = Arc::from(app_client.clone());
 
-    set.spawn(tokio::spawn(async move {
-        shared_client.operation1("something").await;
-        shared_client.operation2("something").await;
-    }));
+    // set.spawn(tokio::spawn(async move {
+    //     shared_client.operation1("something").await;
+    //     shared_client.operation2("something").await;
+    // }));
 
-    while let Some(result) = set.join_next().await {
-        println!("{:?}", result);
-    }
+    // while let Some(result) = set.join_next().await {
+    //     println!("{:?}", result);
+    // }
 
     Ok(())
 }
