@@ -34,7 +34,7 @@ async fn main() -> Result<(), Error> {
     .await
 }
 
-pub async fn function_handler<'a>(
+pub async fn function_handler(
     app_client: &dyn AppInitialisation,
     event: LambdaEvent<Value>,
 ) -> Result<(), Error> {
