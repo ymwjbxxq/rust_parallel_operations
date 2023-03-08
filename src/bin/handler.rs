@@ -49,10 +49,10 @@ pub async fn function_handler<'a>(
     let mut set = JoinSet::new();
     let shared_client = Arc::from(app_client.clone());
 
-    set.spawn(tokio::spawn(async move {
+    set.spawn(async move {
         shared_client.operation1("something").await;
         shared_client.operation2("something").await;
-    }));
+    });
 
     while let Some(result) = set.join_next().await {
         println!("{:?}", result);
