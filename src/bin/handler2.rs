@@ -1,3 +1,4 @@
+use futures::join;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use rust_parallel_operations::{
     di::handler_di::{AppClient, AppInitialisation},
@@ -25,17 +26,14 @@ async fn main() -> Result<(), Error> {
         .operation2(operation2)
         .build();
 
-    // But from a Rust compiler point of view, it doesn’t actually think that app_client has a 'static lifetime. And tokio::spawn requires things to be static.
-    // So one option is: tell the compiler that app_client is 'static. And we can do that by leaking its memory (so it never gets cleaned up).
-    let client: &'static AppClient = Box::leak(Box::new(app_client));
     run(service_fn(|event: LambdaEvent<Value>| {
-        function_handler(client, event)
+        function_handler(&app_client, event)
     }))
     .await
 }
 
 pub async fn function_handler(
-    app_client: &'static dyn AppInitialisation,
+    app_client: &dyn  AppInitialisation,
     event: LambdaEvent<Value>,
 ) -> Result<(), Error> {
     println!("{event:?}");
@@ -44,11 +42,13 @@ pub async fn function_handler(
     // let result1 = app_client.operation1("something").await?;
     // let result2 = app_client.operation2("something").await?;
 
-    let task1 = tokio::spawn(app_client.operation1("something"));
-    let task2 = tokio::spawn(app_client.operation2("something"));
-    
-    let result1 = task1.await?;
-    let result2 = task2.await?;
+    //futures::join! runs things “on the same thread” conceptually:
+    // join!(a, b) is similar to (a.await, b.await)
+    // so it doesn’t need to worry about the multi-threaded data-sharing aspects of Rust.
+    let (result1, result2) = join!(
+        app_client.operation1("something"),
+        app_client.operation2("something"),
+    );
     println!("{result1:?}");
     println!("{result2:?}");
 
@@ -89,7 +89,7 @@ mod tests {
             .returning(move |_| Ok(Some("ciao".to_string())));
 
         // ACT
-        let result = function_handler(Box::leak(Box::new(mock)), event).await;
+        let result = function_handler(&mock, event).await;
 
         // ASSERT
         assert_eq!(result.is_ok(), true);
