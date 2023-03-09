@@ -37,7 +37,7 @@ async fn main() -> Result<(), Error> {
 pub async fn function_handler(
     app_client: &'static dyn AppInitialisation,
     event: LambdaEvent<Value>,
-) -> Result<(), Error> {
+) -> anyhow::Result<()> {
     println!("{event:?}");
 
     // sequentially - unit test will pass
@@ -46,7 +46,7 @@ pub async fn function_handler(
 
     let task1 = tokio::spawn(app_client.operation1("something"));
     let task2 = tokio::spawn(app_client.operation2("something"));
-    
+
     let result1 = task1.await?;
     let result2 = task2.await?;
     println!("{result1:?}");
@@ -60,10 +60,9 @@ mod tests {
     use super::*;
     use async_trait::async_trait;
     use mockall::mock;
-    use rust_parallel_operations::error::ApplicationError;
 
     #[tokio::test]
-    async fn invalidate_key() -> Result<(), ApplicationError> {
+    async fn simeple_test() -> anyhow::Result<()> {
         // ARRANGE
         let json = r#"{"something": "something"}"#;
         let request: Value = serde_json::from_str(json).unwrap();
@@ -75,8 +74,8 @@ mod tests {
 
             #[async_trait]
             impl AppInitialisation for AppClient {
-                async fn operation1(&self, something: &str) -> Result<String, ApplicationError>;
-                async fn operation2(&self, something: &str) -> Result<Option<String>, ApplicationError>;
+                async fn operation1(&self, something: &str) -> anyhow::Result<String>;
+                async fn operation2(&self, something: &str) -> anyhow::Result<Option<String>>;
             }
         }
 
